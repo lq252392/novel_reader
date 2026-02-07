@@ -108,22 +108,28 @@ python novel_reader.py
 ```
 
 
-### 3. 打包成 Windows EXE（无需 Python 环境）
+### 3. 打包成可执行文件（打包后无需 Python 环境）
 
-#### 3.1 安装打包工具
+#### 3.1 Windows 系统打包
 ```bash
-pip install pyinstaller
+# 运行打包脚本（自动检测并安装依赖）
+build.bat
 ```
 
-#### 3.2 执行打包命令（单文件、无控制台窗口）
+#### 3.2 Linux 系统打包
 ```bash
-pyinstaller --noconfirm --clean --onefile --windowed --name NovelReader novel_reader.py
+# 给脚本添加执行权限
+chmod +x build.sh
+
+# 运行打包脚本
+./build.sh
 ```
 
 #### 3.3 产物位置
-生成的可执行文件位于：`dist/NovelReader.exe`
+- **Windows**: `build/exe.win-amd64-3.*/NovelReader.exe`
+- **Linux**: `build/exe.linux-x86_64-3.*/NovelReader`
 
-**说明**：项目稳定后将直接提供 exe 版本下载。
+**说明**：打包脚本会自动检测并安装 cx_freeze，如果已安装则跳过安装步骤。
 
 ### 4. 功能特性
 *   **🎯 物理重定位**：即使索引未扫描完，也能通过 `byte_pos` 瞬间找回上次阅读进度。
@@ -137,4 +143,3 @@ pyinstaller --noconfirm --clean --onefile --windowed --name NovelReader novel_re
 这个项目不仅是一个工具，更是 AI 协助人类进行**架构重构**的典型案例。从 GPT 的“大而全”到 Gemini 的“精而强”，我们见证了逻辑简化的力量。
 
 ---
-

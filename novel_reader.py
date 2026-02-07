@@ -95,7 +95,7 @@ class ReaderApp:
     def _setup_styles(self):
         """全局UI字号调节"""
         style = ttk.Style()
-        ui_font_size = 11
+        ui_font_size = 12
         style.configure("TButton", font=("Microsoft YaHei", ui_font_size))
         style.configure("TLabel", font=("Microsoft YaHei", ui_font_size))
         style.configure("TSpinbox", font=("Microsoft YaHei", ui_font_size))
