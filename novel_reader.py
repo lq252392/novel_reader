@@ -1,6 +1,7 @@
 import os, re, json, threading, time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import sys
 
 try:
     import chardet
@@ -8,7 +9,19 @@ except ImportError:
     chardet = None
 
 APP_NAME = "极速阅读器 Pro v3.7"
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "reader_settings.json")
+
+
+def get_config_file():
+    """获取配置文件路径，支持打包后的exe文件，保存在EXE所在目录"""
+    if getattr(sys, 'frozen', False):
+        # 如果是打包后的可执行文件，返回EXE所在目录
+        exe_dir = os.path.dirname(sys.executable)
+        return os.path.join(exe_dir, "reader_settings.json")
+    else:
+        # 如果是开发环境中的Python脚本
+        return os.path.join(os.path.dirname(__file__), "reader_settings.json")
+
+CONFIG_FILE = get_config_file()
 
 class FastTextIndexer:
     """高性能索引器：精确统计 + 增量反馈"""
@@ -292,7 +305,12 @@ class ReaderApp:
         self.progress_var.set(f"进度: {p:.1f}%")
 
     def on_close(self):
-        self.save_settings(); self.root.destroy()
+        try:
+            self.save_settings()
+        except Exception as e:
+            print(f"Error saving settings: {e}")
+        finally:
+            self.root.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
