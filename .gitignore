@@ -1,0 +1,52 @@
+# Python项目忽略规则
+
+# 缓存目录
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.venv/
+venv/
+
+# 临时文件
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*~
+
+# 日志文件
+*.log
+logs/
+
+# 配置文件
+.env
+.env.local
+.env.*.local
+
+# IDE配置
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 打包产物
+dist/
+build/
+*.egg-info/
+*.exe
+*.spec
+
+# 测试覆盖率
+htmlcov/
+.coverage
+.coverage.*
+
+# 其他
+.cache/
+.temp/
