@@ -1,12 +1,12 @@
 
 # 🚀 Extreme-Novel-Reader: 极速索引小说阅读器
 
-一款基于 Python + Tkinter 的超大文本（TXT）阅读器方案。从最初的 800 行代码全量加载架构，进化到了如今仅 300 行的"字节索引 + 延迟渲染"极致架构。
+一款基于 Python + Tkinter 的多格式小说阅读器方案，支持 TXT、EPUB 等多种格式。从最初的 800 行代码全量加载架构，进化到了如今仅 300 行的"字节索引 + 延迟渲染"极致架构（TXT单文件版本）。项目采用模块化设计，支持扩展更多电子书格式。
 
 ## 🎯 核心功能
 
 ### 📁 文件处理
-- **格式支持**：支持 TXT 文本文件读取
+- **格式支持**：支持 TXT 文本文件读取（主要格式），预留 EPUB/MOBI 等格式扩展接口
 - **智能编码检测**：自动识别 UTF-8、GBK、GB2312 等常见编码
 - **手动编码选择**：允许用户手动指定文件编码格式，并根据选择动态解码展示内容
 - **大文件优化**：支持超大文本文件的快速加载和流畅阅读
@@ -15,7 +15,7 @@
 - **智能章节识别**：通过正则表达式自动识别章节标题
 - **动态目录生成**：根据章节标题自动生成可交互的侧边栏目录
 - **章节跳转**：点击目录快速定位到指定章节
-- **章节导航**：支持左右方向键在章节间切换
+- **章节导航**：支持左右方向键在章节间切换（切换后目录会定位对应章节）
 - **章节搜索**：在目录上方新增搜索框，支持模糊搜索实时过滤
 - **快速定位**：支持通过编号直接定位（如输入#10跳转到第10个章节）
 
@@ -52,7 +52,7 @@
 
 1. 确保已安装 Python 3.6+
 2. 安装依赖：`pip install chardet` （可选，用于编码检测）
-3. 运行：`python novel_reader.py`
+3. 运行：`python main.py`
 
 ### 基本操作
 
@@ -69,33 +69,106 @@
 
 运行以下脚本之一：
 
-- Windows 批处理脚本：`package_and_zip.bat`
-- Python 脚本（优先）：`python package_and_zip.py`
-
-脚本将自动执行以下步骤：
-1. 检查并安装 `cx_Freeze`（如果未安装）
-2. 清理旧的构建目录
-3. 执行打包命令
-4. 将生成的构建目录压缩为 ZIP 文件
-5. 输出压缩文件到项目根目录
+- Windows 批处理脚本：`package_and_zip.bat` (仅模块化版本)
+- Python 脚本（优先）：`python package_and_zip.py` (仅模块化版本)
+- 通用打包脚本：`package_selector.bat` (支持选择打包模块化版本、单文件版本或两者)
 
 ### 手动打包
 
+#### 打包模块化版本（支持扩展格式）
+
 1. 确保已安装 `cx_Freeze`：`pip install cx_Freeze`
 2. 运行打包命令：`python setup.py build`
-3. 在 `build/exe.*` 目录中找到生成的可执行文件
+3. 在 `build/极速小说阅读器` 目录中找到生成的可执行文件
+
+#### 打包单文件版本（仅TXT支持）
+
+对于只需要TXT格式支持的用户，可以打包单文件版本：
+
+1. 确保已安装 `cx_Freeze`：`pip install cx_Freeze`
+2. 运行打包命令：`python setup_single.py build`
+3. 在 `build/极速小说阅读器-单文件版` 目录中找到生成的可执行文件
+
+#### 使用通用打包脚本
+
+运行 `package_selector.bat` 可以交互式选择要打包的版本：
+
+1. 双击运行 `package_selector.bat`
+2. 选择打包选项（模块化版本/单文件版本/两个版本都打包）
+3. 脚本会自动完成打包和压缩
 
 ## 项目结构
+
+### 模块化架构
+
+为支持多格式阅读器，项目重构为模块化结构：
+
 ```
 小说阅读器/
-├── novel_reader.py          # 主程序文件
-├── setup.py                 # 打包配置文件
-├── build.bat               # 原始打包脚本
-├── package_and_zip.bat     # 自动打包并压缩脚本（Windows）
-├── package_and_zip.py      # 自动打包并压缩脚本（Python）
-├── README.md               # 项目说明文档
-└── reader_settings.json    # 用户配置文件（运行后生成）
+├── main.py                 # 主入口文件
+├── setup.py                # 打包配置文件
+├── build.bat              # 原始打包脚本
+├── package_and_zip.bat    # 自动打包并压缩脚本（Windows）
+├── package_and_zip.py     # 自动打包并压缩脚本（Python）
+├── README.md              # 项目说明文档
+├── core/                  # 核心解析器模块
+│   ├── __init__.py
+│   ├── base_parser.py     # 解析器基类
+│   ├── txt_parser.py      # TXT格式解析器
+│   └── ebook_parser.py    # 电子书格式解析器（预留接口）
+├── ui/                    # 用户界面模块
+│   ├── __init__.py
+│   ├── app.py             # 主应用类
+│   └── styles.py          # 样式配置
+├── utils/                 # 工具函数模块
+│   ├── __init__.py
+│   ├── config.py          # 配置管理
+│   ├── detector.py        # 编码检测
+│   └── reader_settings.json  # 用户配置文件（运行后生成）
+└── assets/                # 资源文件
+    ├── novel_reader_MainPage.png
+    └── HTML_NovelReader_Example.png
 ```
+
+### 为纯TXT用户保留的单文件版本
+
+对于只需要TXT格式支持的用户，项目仍然保留了原有的单文件版本，位于 `novel_reader.py`，具有相同的性能和功能：
+
+- **高性能**：同样采用"字节索引 + 延迟渲染"架构
+- **完整功能**：包含所有TXT阅读功能
+- **独立部署**：单文件便于携带和分享
+- **向后兼容**：与原有使用方式完全一致
+
+## 扩展性说明
+
+### 添加新格式支持
+
+项目采用抽象基类设计，易于扩展新的电子书格式：
+
+```python
+from core.base_parser import BaseParser
+
+class NewFormatParser(BaseParser):
+    def scan(self, rule, callback, task_id):
+        # 实现新格式的章节扫描逻辑
+        pass
+
+    def get_content(self, idx):
+        # 实现新格式的内容提取逻辑
+        pass
+
+    def save_content(self, idx, content):
+        # 实现新格式的内容保存逻辑（如果支持）
+        pass
+```
+
+### 依赖安装
+
+如需扩展EPUB等格式支持，需安装额外依赖：
+```bash
+pip install ebooklib beautifulsoup4
+```
+
 ## 📸 界面预览
 
 **主页面示例**

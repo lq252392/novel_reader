@@ -25,6 +25,7 @@ logs/
 .env.local
 .env.*.local
 reader_settings.json
+utils/reader_settings.json
 
 # IDE配置
 .idea/
