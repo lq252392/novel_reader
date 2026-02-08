@@ -42,6 +42,9 @@ build/
 *.egg-info/
 *.exe
 *.spec
+*.zip
+*.7z
+*.rar
 
 # 测试覆盖率
 htmlcov/
