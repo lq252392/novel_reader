@@ -6,6 +6,8 @@ from .styles import THEMES, APP_NAME, DEFAULT_REG, REG_TEMPLATES
 from core.txt_parser import TxtParser
 from utils.config import ConfigManager
 
+from core.parser_factory import ParserFactory
+
 class ReaderApp:
     def __init__(self, root):
         self.root = root
@@ -205,21 +207,83 @@ class ReaderApp:
         self.progress_var.set(f"进度: {idx+1}/{len(self.parser.chapters) if self.parser.chapters else 1}章")
         self.refresh_dir()
 
-
     # --- 定位与解析 ---
+        # --- 修复后的定位与解析 ---
     def load_file(self, path):
         if self.current_file: self.save_session_settings()
         self.current_file = path
-        self.parser = TxtParser(path)
+        
+        try:
+            # 统一通过工厂获取
+            self.parser = ParserFactory.get_parser(path)
+        except Exception as e:
+            messagebox.showerror("格式错误", f"无法加载文件: {e}")
+            return
+
         self.book_start = time.time()
         
+        # 1. 核心修复：从配置读取历史位置
         f_cfg = self.config_repo.settings.get("files", {}).get(path, {})
         self.temp_saved_idx = f_cfg.get("ch_idx", 0)
         self.temp_saved_offset = f_cfg.get("offset", 0.0)
-        self.temp_saved_byte = f_cfg.get("byte_pos", 0)
+        self.temp_saved_byte = f_cfg.get("byte_pos", 0) # 即使是EPUB也设为0，作为“需要跳转”的标记
         
         self.current_ch_idx = self.temp_saved_idx
+
+        # 2. 开始解析
         self.re_index()
+
+    def _sync_ui(self, tc, th, done):
+        """解析完成后的 UI 同步逻辑"""
+        if done:
+            self.is_indexing = False
+            self.status_var.set(os.path.basename(self.current_file))
+            self.stats_var.set(f"全书: {tc:,} | 汉字: {th:,}")
+            
+            # 3. 核心修复：重定位逻辑
+            if hasattr(self, 'temp_saved_byte'):
+                best_idx = 0
+                if self.current_file.lower().endswith('.txt'):
+                    # TXT 模式：根据字节位置寻找最匹配的章节索引
+                    for i, (title, pos) in enumerate(self.parser.chapters):
+                        if pos <= self.temp_saved_byte: 
+                            best_idx = i
+                        else: 
+                            break
+                else:
+                    # EPUB 模式：直接使用保存的章节索引
+                    best_idx = self.temp_saved_idx
+                
+                # 执行跳转
+                self.show_chapter(best_idx)
+                
+                # 恢复滚动条位置
+                def _restore_scroll():
+                    self.text.yview_moveto(self.temp_saved_offset)
+                self.root.after(200, _restore_scroll)
+                
+                # 任务完成，删除标记变量
+                delattr(self, 'temp_saved_byte')
+            
+            self.refresh_dir()
+        else:
+            # 正在解析中的进度条显示
+            self.stats_var.set(f"解析中: {tc//10000}万字...")
+
+
+    # 禁止非 TXT 格式修改
+    def toggle_edit(self):
+        if not self.parser: return
+        
+        # 增加格式校验
+        ext = os.path.splitext(self.current_file)[1].lower()
+        if ext != '.txt' and not self.is_editing:
+            messagebox.showwarning("只读格式", f"抱歉，{ext.upper()} 格式目前仅支持阅读，暂不支持在线编辑。")
+            return
+
+        self.is_editing = not self.is_editing
+        self.edit_btn.config(text="📖 退出编辑" if self.is_editing else "📝 编辑 (E)")
+        self.save_btn.config(state=tk.NORMAL if self.is_editing else tk.DISABLED)
         self.show_chapter(self.current_ch_idx)
 
     def re_index(self):
@@ -233,25 +297,7 @@ class ReaderApp:
         if tid != self.current_task_id: return
         self.root.after(0, lambda: self._sync_ui(tc, th, done))
 
-    def _sync_ui(self, tc, th, done):
-        if done:
-            self.is_indexing = False
-            self.status_var.set(os.path.basename(self.current_file))
-            # 修复：显示全书字数和汉字数
-            self.stats_var.set(f"全书: {tc:,} | 汉字: {th:,}")
-            
-            if hasattr(self, 'temp_saved_byte'):
-                best_idx = 0
-                for i, (title, pos) in enumerate(self.parser.chapters):
-                    if pos <= self.temp_saved_byte: best_idx = i
-                    else: break
-                self.current_ch_idx = best_idx
-                self.show_chapter(self.current_ch_idx)
-                self.root.after(150, lambda: self.text.yview_moveto(self.temp_saved_offset))
-                delattr(self, 'temp_saved_byte')
-            self.refresh_dir()
-        else:
-            self.stats_var.set(f"索引中: {tc//10000}万字...")
+
 
     # --- 样式与计时 ---
     def apply_style(self, _=None):
@@ -332,16 +378,21 @@ class ReaderApp:
         })
         self.book_start = time.time()
 
+    # 1. 更新文件选择对话框
     def open_file_dialog(self):
-        p = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
+        # 允许选择多种格式
+        p = filedialog.askopenfilename(filetypes=[
+            ("所有图书格式", "*.txt *.epub *.mobi *.azw *.azw3"),
+            ("TXT 文本", "*.txt"),
+            ("EPUB 电子书", "*.epub"),
+            ("MOBI/AZW 电子书", "*.mobi *.azw *.azw3"),
+            ("所有文件", "*.*")
+        ])
         if p: self.load_file(p)
 
-    def toggle_edit(self):
-        if not self.parser: return
-        self.is_editing = not self.is_editing
-        self.edit_btn.config(text="📖 退出编辑" if self.is_editing else "📝 编辑 (E)")
-        self.save_btn.config(state=tk.NORMAL if self.is_editing else tk.DISABLED)
-        self.show_chapter(self.current_ch_idx)
+    
+
+
 
     def save_edit(self):
         if self.parser and self.is_editing:

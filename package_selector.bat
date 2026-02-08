@@ -1,18 +1,18 @@
 @echo off
-chcp 65001 >nul
+chcp 936 >nul
 setlocal enabledelayedexpansion
 
 echo.
 echo ========================
-echo 极速小说阅读器打包工具
+echo Novel Reader Packager
 echo ========================
 echo.
-echo 请选择打包版本：
-echo 1. 模块化版本（支持扩展格式）
-echo 2. 单文件版本（仅TXT支持）
-echo 3. 两个版本都打包
+echo Please select build version:
+echo 1. Modular version (support TXT/EPUB/MOBI)
+echo 2. Single file version (TXT only)
+echo 3. Build both versions
 echo.
-set /p choice=请输入选择 (1/2/3): 
+set /p choice=Please enter your choice (1/2/3): 
 
 REM 检查是否安装了 cx_Freeze
 python -c "import cx_Freeze" >nul 2>&1
@@ -24,6 +24,22 @@ if errorlevel 1 (
         echo 错误：无法安装 cx_Freeze，请手动安装后再试
         pause
         exit /b 1
+    )
+)
+
+REM 检查是否安装了EPUB和MOBI依赖包（仅模块化版本需要）
+if "%choice%"=="1" (
+    echo.
+    echo 检查EPUB和MOBI依赖包...
+    python -c "import ebooklib, bs4, mobi" >nul 2>&1
+    if errorlevel 1 (
+        echo 正在安装EPUB和MOBI依赖包...
+        pip install ebooklib beautifulsoup4 mobi
+        if errorlevel 1 (
+            echo 警告：EPUB/MOBI依赖包安装失败，模块化版本将无法支持EPUB/MOBI格式
+        ) else (
+            echo EPUB/MOBI依赖包安装成功
+        )
     )
 )
 
@@ -41,11 +57,11 @@ if "%choice%"=="1" (
 
 :build_modular
 echo.
-echo 开始打包模块化版本...
+echo Building modular version...
 rmdir /s /q build 2>nul
 python setup.py build
 if errorlevel 1 (
-    echo 模块化版本打包失败
+    echo Modular version build failed
     pause
     exit /b 1
 )

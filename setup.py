@@ -7,20 +7,20 @@ include_files = []
 
 
 build_exe_options = {
-    "packages": ["tkinter", "os", "sys", "json", "re", "threading", "time"],
+    "packages": ["tkinter", "os", "sys", "json", "re", "threading", "time", "ebooklib", "bs4", "mobi"],
     "excludes": ["tkinter.test", "tkinter.tests", "test", "unittest", "email", "xml", "distutils"],
     "include_files": include_files,
     "optimize": 2,
-    "build_exe": "build/极速小说阅读器",  # 构建文件放在build目录下
+    "build_exe": "build/NovelReader",  # 使用英文目录名避免路径问题
     "silent": True,  # 减少输出信息
 }
 
 setup(
-    name="极速小说阅读器",
-    version="4.1",
-    description="极速小说阅读器 - 支持多格式的模块化版本",
+    name="NovelReader",
+    version="4.2",
+    description="Novel Reader - Support TXT/EPUB/MOBI formats",
     options={"build_exe": build_exe_options},
-    executables=[Executable("main.py", base="Win32GUI", target_name="极速小说阅读器.exe")],
+    executables=[Executable("main.py", base="Win32GUI", target_name="NovelReader.exe")],
     # 明确指定只打包必要的文件
     include_package_data=False,
 )

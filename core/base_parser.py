@@ -1,17 +1,20 @@
-class BaseParser:
+from abc import ABC, abstractmethod
+
+class BaseParser(ABC):
     def __init__(self, file_path):
         self.file_path = file_path
-        self.chapters = [] # 格式: [(标题, 字节位置/索引)]
-        self.encoding = "utf-8"
+        self.chapters = [] # 存储结构: [(标题, 索引/偏移), ...]
 
+    @abstractmethod
     def scan(self, rule, callback, task_id):
-        """扫描章节，通过 callback 返回进度"""
-        raise NotImplementedError
+        """异步解析目录结构"""
+        pass
 
-    def get_content(self, idx):
-        """获取指定章节内容"""
-        raise NotImplementedError
+    @abstractmethod
+    def get_content(self, index):
+        """获取指定章节的纯文本内容"""
+        pass
 
-    def save_content(self, idx, content):
-        """保存修改内容（如果支持）"""
-        raise NotImplementedError
+    def save_content(self, index, text):
+        """默认不支持保存，仅 TXT 子类重写此方法"""
+        return False
