@@ -1,10 +1,12 @@
 # ui/app.py
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import time, os, sys, json, re
 from .styles import THEMES, APP_NAME, DEFAULT_REG, REG_TEMPLATES
-from core.txt_parser import TxtParser
 from utils.config import ConfigManager
+from io import BytesIO
+from PIL import Image, ImageTk
 
 from core.parser_factory import ParserFactory
 
@@ -179,33 +181,82 @@ class ReaderApp:
 
     def show_chapter(self, idx):
         if not self.parser: return
-        if not self.parser.chapters: idx = 0
-        else:
-            idx = max(0, min(idx, len(self.parser.chapters) - 1))
-            
         self.current_ch_idx = idx
-        raw_content = self.parser.get_content(idx)
         
-        # 渲染逻辑
-        display_content = raw_content
-        if not self.is_editing:
-            display_content = self._format_content_for_read(raw_content)
+        # 获取块列表
+        blocks = self.parser.get_content(idx)
+        if isinstance(blocks, str):
+            blocks = [{'type': 'text', 'content': blocks}]
 
         self.text.config(state=tk.NORMAL)
         self.text.delete("1.0", tk.END)
-        self.text.insert("1.0", display_content)
         
+        if not hasattr(self, 'image_refs'): self.image_refs = []
+        self.image_refs.clear()
+        self.text.tag_configure("img_center", justify='center')
+
+        # 优化：先快速渲染所有文字，图片留出占位符，然后异步加载图片
+        for block in blocks:
+            if block['type'] == 'text':
+                display_text = self._format_content_for_read(block['content'])
+                if display_text:
+                    self.text.insert(tk.END, display_text + "\n\n")
+            
+            elif block['type'] == 'img':
+                # 插入一个占位标记
+                self.text.insert(tk.END, "\n")
+                placeholder_idx = self.text.index(tk.INSERT)
+                self.text.insert(tk.END, " [正在加载图片...] \n\n", "img_center")
+                
+                # 开启线程处理图片缩放，避免阻塞主线程
+                threading.Thread(target=self._async_load_img, 
+                               args=(block['content'], placeholder_idx), 
+                               daemon=True).start()
+
         if not self.is_editing:
             self.text.config(state=tk.DISABLED)
-            # 必须先 apply_style 再 apply_visual_kerning，因为后者依赖当前的字号
-            self.apply_style()
             self._apply_visual_kerning()
-        else:
-            self.apply_style()
+        
+        self.apply_style()
+
+    def _async_load_img(self, raw_data, index_str):
+        """后台缩放图片并回到主线程插入"""
+        try:
+            from io import BytesIO
+            from PIL import Image, ImageTk
             
-        self.ch_stats_var.set(f"本章: {len(raw_content):,}字")
-        self.progress_var.set(f"进度: {idx+1}/{len(self.parser.chapters) if self.parser.chapters else 1}章")
-        self.refresh_dir()
+            pil_img = Image.open(BytesIO(raw_data))
+            
+            # 这里的宽度计算可以稍作延迟以获取最新窗口宽
+            win_w = self.text.winfo_width() - 120
+            if win_w < 100: win_w = 800
+            
+            if pil_img.size[0] > win_w:
+                ratio = win_w / float(pil_img.size[0])
+                pil_img = pil_img.resize((win_w, int(pil_img.size[1]*ratio)), Image.Resampling.LANCZOS)
+            
+            tk_img = ImageTk.PhotoImage(pil_img)
+            
+            # 回到主线程更新 UI
+            self.root.after(0, lambda: self._insert_img_to_text(tk_img, index_str))
+        except Exception as e:
+            print(f"异步图片处理失败: {e}")
+
+    def _insert_img_to_text(self, tk_img, index_str):
+        """将处理好的图片替换掉占位符"""
+        self.image_refs.append(tk_img)
+        self.text.config(state=tk.NORMAL)
+        
+        # 找到占位符所在行的起始和结束
+        line_start = f"{index_str} linestart"
+        line_end = f"{index_str} lineend + 1c"
+        
+        self.text.delete(line_start, line_end)
+        self.text.image_create(line_start, image=tk_img)
+        self.text.tag_add("img_center", line_start)
+        self.text.insert(line_start + " + 1c", "\n")
+        
+        self.text.config(state=tk.DISABLED)
 
     # --- 定位与解析 ---
         # --- 修复后的定位与解析 ---
