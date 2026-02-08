@@ -6,6 +6,10 @@ echo ======================================
 echo Novel Reader Packaging Script (Windows)
 echo ======================================
 
+REM Set custom names
+set "PROJECT_NAME=NovelReader"
+set "ZIP_PREFIX=NovelReader"
+
 echo Checking if cx_freeze is installed...
 python -c "import cx_Freeze" >nul 2>&1
 if errorlevel 1 (
@@ -46,32 +50,35 @@ if not errorlevel 1 (
     )
     
     :found_build
-    if defined BUILD_DIR (
+    if not "!BUILD_DIR!"=="" (
         echo Found build directory: !BUILD_DIR!
 
         echo Getting build directory name...
         for %%f in ("!BUILD_DIR!") do set "DIR_NAME=%%~nxf"
 
         echo Creating archive...
-        powershell -Command "Compress-Archive -Path '!BUILD_DIR!' -DestinationPath 'NovelReader-!DIR_NAME!.zip' -Force"
+        echo Using PowerShell compression...
+        REM 使用-ExecutionPolicy Bypass绕过执行策略限制
+        powershell -ExecutionPolicy Bypass -Command "if (Test-Path '!BUILD_DIR!') { Compress-Archive -Path '!BUILD_DIR!' -DestinationPath '!ZIP_PREFIX!-!DIR_NAME!.zip' -Force; Write-Output 'PowerShell compression completed' } else { Write-Error 'Path does not exist: !BUILD_DIR!' }"
         if not errorlevel 1 (
             echo.
             echo ======================================
             echo Compression successful!
-            echo Archive location: NovelReader-!DIR_NAME!.zip
+            echo Archive location: !ZIP_PREFIX!-!DIR_NAME!.zip
             echo ======================================
         ) else (
             echo PowerShell compression failed!
             echo Trying 7-Zip compression...
 
             REM Try 7-Zip if PowerShell fails
+            echo Trying 7-Zip compression...
             if exist "C:\Program Files\7-Zip\7z.exe" (
-                "C:\Program Files\7-Zip\7z.exe" a -tzip "NovelReader-!DIR_NAME!.zip" "!BUILD_DIR!"
+                "C:\Program Files\7-Zip\7z.exe" a -tzip "!ZIP_PREFIX!-!DIR_NAME!.zip" "!BUILD_DIR!"
                 if not errorlevel 1 (
                     echo.
                     echo ======================================
                     echo 7-Zip compression successful!
-                    echo Archive location: NovelReader-!DIR_NAME!.zip
+                    echo Archive location: !ZIP_PREFIX!-!DIR_NAME!.zip
                     echo ======================================
                 ) else (
                     echo 7-Zip compression also failed!

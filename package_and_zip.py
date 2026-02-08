@@ -39,11 +39,25 @@ def build_app():
 
 def find_build_dir():
     """查找打包后的目录"""
+    # 检查build目录下的自定义构建目录
     build_path = Path("build")
     if build_path.exists():
+        # 查找build目录下的所有子目录
         for item in build_path.iterdir():
-            if item.is_dir() and item.name.startswith("exe."):
-                return item
+            if item.is_dir():
+                # 优先查找自定义名称的目录
+                if item.name == "极速小说阅读器":
+                    return item
+                # 然后查找传统的exe.*目录
+                elif item.name.startswith("exe."):
+                    return item
+    
+    # 如果build目录不存在，检查根目录下的构建目录（兼容旧版本）
+    custom_build_dir = Path("极速小说阅读器")
+    if custom_build_dir.exists() and custom_build_dir.is_dir():
+        print("警告：构建目录在根目录下，建议使用新的setup.py配置")
+        return custom_build_dir
+    
     return None
 
 def zip_directory(source_dir, output_filename):
@@ -63,6 +77,10 @@ def main():
     print("=" * 50)
     print("小说阅读器打包并压缩脚本")
     print("=" * 50)
+    
+    # 自定义设置
+    PROJECT_NAME = "极速小说阅读器"
+    ZIP_PREFIX = "FastNovelReader"
     
     # 检查并安装cx_Freeze
     if not install_cx_freeze():
@@ -87,7 +105,7 @@ def main():
             dir_name = build_dir.name
             
             # 创建压缩文件名
-            zip_filename = f"NovelReader-{dir_name}.zip"
+            zip_filename = f"{ZIP_PREFIX}-{dir_name}.zip"
             
             # 压缩目录
             zip_directory(build_dir, zip_filename)

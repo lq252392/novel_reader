@@ -1,17 +1,26 @@
 import sys
+import os
 from cx_Freeze import setup, Executable
+
+# 明确指定需要包含的额外文件
+include_files = []
+
 
 build_exe_options = {
     "packages": ["tkinter", "os", "sys", "json", "re", "threading", "time"],
-    "excludes": ["tkinter.test", "tkinter.tests"],
-    "include_files": [],
+    "excludes": ["tkinter.test", "tkinter.tests", "test", "unittest", "email", "xml", "distutils"],
+    "include_files": include_files,
     "optimize": 2,
+    "build_exe": "build/极速小说阅读器",  # 构建文件放在build目录下
+    "silent": True,  # 减少输出信息
 }
 
 setup(
-    name="NovelReader",
-    version="1.0",
-    description="小说阅读器",
+    name="极速小说阅读器",
+    version="4.0",
+    description="极速小说阅读器",
     options={"build_exe": build_exe_options},
-    executables=[Executable("novel_reader.py", base="Win32GUI", target_name="NovelReader.exe")]
+    executables=[Executable("novel_reader.py", base="Win32GUI", target_name="极速小说阅读器.exe")],
+    # 明确指定只打包必要的文件
+    include_package_data=False,
 )
